@@ -1,0 +1,18 @@
+{
+  "resource_pack_name": "MafiaCityRP",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "mafia_gloves": {
+      "textures": "textures/items/mafia_gloves"
+    },
+    "mafia_lockpick": {
+      "textures": "textures/items/mafia_lockpick"
+    },
+    "mafia_door_lock": {
+      "textures": "textures/items/mafia_door_lock"
+    },
+    "mafia_grandpa_rifle": {
+      "textures": "textures/items/mafia_grandpa_rifle"
+    }
+  }
+}

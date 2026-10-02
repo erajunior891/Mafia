@@ -1,0 +1,10 @@
+pack.name=Мафия: Город (Ресурсы)
+pack.description=Текстуры и ресурсы для мода «Мафия: Город»
+
+item.mafia:lockpick.name=Отмычка
+item.mafia:door_lock.name=Дверной замок
+item.mafia:gloves.name=Перчатки
+item.mafia:grandpa_rifle.name=Ружьё Деда
+item.mafia:evidence_book.name=Книга улик
+item.mafia:dossier_book.name=Досье
+entity.mafia:corpse.name=Труп

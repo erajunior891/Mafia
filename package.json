@@ -1,0 +1,24 @@
+{
+  "name": "mafia-city-bedrock",
+  "version": "1.0.0",
+  "description": "Minecraft Bedrock Edition Mafia Game Add-on",
+  "scripts": {
+    "build": "esbuild BP/scripts/src/main.ts --bundle --outfile=BP/scripts/main.js --format=esm --external:@minecraft/server --external:@minecraft/server-ui",
+    "watch": "esbuild BP/scripts/src/main.ts --bundle --outfile=BP/scripts/main.js --format=esm --external:@minecraft/server --external:@minecraft/server-ui --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "minecraft",
+    "bedrock",
+    "addon",
+    "mafia"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@minecraft/server": "^1.13.0",
+    "@minecraft/server-ui": "^1.3.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.3"
+  }
+}

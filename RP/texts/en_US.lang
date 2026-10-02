@@ -1,0 +1,10 @@
+pack.name=Mafia: City (Resources)
+pack.description=Textures and resources for Mafia: City mod
+
+item.mafia:lockpick.name=Lockpick
+item.mafia:door_lock.name=Door Lock
+item.mafia:gloves.name=Gloves
+item.mafia:grandpa_rifle.name=Grandpa's Rifle
+item.mafia:evidence_book.name=Book of Clues
+item.mafia:dossier_book.name=Dossier
+entity.mafia:corpse.name=Corpse

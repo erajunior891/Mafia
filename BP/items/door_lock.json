@@ -1,0 +1,18 @@
+{
+  "format_version": "1.20.50",
+  "minecraft:item": {
+    "description": {
+      "identifier": "mafia:door_lock",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": "mafia_door_lock",
+      "minecraft:max_stack_size": 16,
+      "minecraft:display_name": {
+        "value": "item.mafia:door_lock.name"
+      }
+    }
+  }
+}
