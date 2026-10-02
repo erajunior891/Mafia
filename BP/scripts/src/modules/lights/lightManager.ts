@@ -51,7 +51,6 @@ export class LightManager {
       return false;
     }
 
-    const door = doorManager.getDoorAt({ x: 0, y: 0, z: 0 }); // Или по ключу
     doorManager.setLightState(houseDoorKey, false);
     this.goonSabotageCount.set(goon.id, usedCount + 1);
 

@@ -2,11 +2,11 @@
 import {
   world as world8,
   system as system5,
-  Player as Player8
+  Player as Player9
 } from "@minecraft/server";
 
 // BP/scripts/src/modules/debug/debugManager.ts
-import { Player as Player6, world as world6 } from "@minecraft/server";
+import { Player as Player7, world as world6 } from "@minecraft/server";
 
 // BP/scripts/src/modules/game/gameManager.ts
 import { system as system3, world as world5 } from "@minecraft/server";
@@ -665,87 +665,282 @@ import { world as world4 } from "@minecraft/server";
 
 // BP/scripts/src/modules/doors/doorManager.ts
 import { world as world3 } from "@minecraft/server";
+
+// BP/scripts/src/modules/doors/lockpickMinigame.ts
+import { system as system2 } from "@minecraft/server";
+import { ActionFormData } from "@minecraft/server-ui";
+var LockpickMinigame = class {
+  activeSessions = /* @__PURE__ */ new Map();
+  /**
+   * Запуск интерактивной мини-игры взлома замка
+   */
+  startMinigame(player, door, onFinish) {
+    const totalPins = 3;
+    const pinSolutions = [
+      Math.floor(Math.random() * 3),
+      Math.floor(Math.random() * 3),
+      Math.floor(Math.random() * 3)
+    ];
+    const state = {
+      currentPin: 0,
+      totalPins,
+      durability: 3,
+      pinSolutions,
+      door,
+      lastHint: "\xA77\u0417\u0430\u043C\u043E\u043A \u0437\u0430\u043F\u0435\u0440\u0442. \u041F\u043E\u0434\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u043E\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0434\u043B\u044F \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0438\u0437 3 \u0448\u0442\u0438\u0444\u0442\u043E\u0432."
+    };
+    this.activeSessions.set(player.id, state);
+    this.showMinigameStep(player, onFinish);
+  }
+  showMinigameStep(player, onFinish) {
+    const state = this.activeSessions.get(player.id);
+    if (!state || !player.isValid()) return;
+    const durabilityStr = "\xA7a" + "\u25A0 ".repeat(state.durability) + "\xA77" + "\u25A1 ".repeat(3 - state.durability);
+    const pinStatusTexts = [];
+    for (let i = 0; i < state.totalPins; i++) {
+      if (i < state.currentPin) {
+        pinStatusTexts.push(`\xA7a\u0428\u0442\u0438\u0444\u0442 ${i + 1}: [\u2713 \u0417\u0430\u0444\u0438\u043A\u0441\u0438\u0440\u043E\u0432\u0430\u043D]`);
+      } else if (i === state.currentPin) {
+        pinStatusTexts.push(`\xA7e\u0428\u0442\u0438\u0444\u0442 ${i + 1}: [\u25B6 \u041F\u043E\u0434\u0431\u043E\u0440 \u043F\u043E\u043B\u043E\u0436\u0435\u043D\u0438\u044F...]`);
+      } else {
+        pinStatusTexts.push(`\xA78\u0428\u0442\u0438\u0444\u0442 ${i + 1}: [? \u0417\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D]`);
+      }
+    }
+    const form = new ActionFormData();
+    form.title("\xA74\xA7l\u0412\u0437\u043B\u043E\u043C \u0434\u0432\u0435\u0440\u043D\u043E\u0433\u043E \u0437\u0430\u043C\u043A\u0430");
+    form.body(
+      `\xA77\u0414\u043E\u043C \u0436\u0438\u0442\u0435\u043B\u044F: \xA7f${state.door.ownerName}
+\xA77\u041F\u0440\u043E\u0447\u043D\u043E\u0441\u0442\u044C \u043E\u0442\u043C\u044B\u0447\u043A\u0438: ${durabilityStr} \xA78(${state.durability}/3)
+
+` + pinStatusTexts.join("\n") + `
+
+${state.lastHint || ""}
+\xA76\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043E\u0442\u043C\u044B\u0447\u043A\u043E\u0439:`
+    );
+    form.button("\xA7e[ \u2191 ] \u041F\u0440\u0438\u043F\u043E\u0434\u043D\u044F\u0442\u044C \u0448\u0442\u0438\u0444\u0442 \u0432\u0432\u0435\u0440\u0445");
+    form.button("\xA7b[ \u2190 ] \u0421\u0434\u0432\u0438\u043D\u0443\u0442\u044C \u0446\u0438\u043B\u0438\u043D\u0434\u0440 \u0432\u043B\u0435\u0432\u043E");
+    form.button("\xA76[ \u2192 ] \u041D\u0430\u0434\u0430\u0432\u0438\u0442\u044C \u043D\u0430 \u043F\u0440\u0443\u0436\u0438\u043D\u0443 \u0432\u0433\u043B\u0443\u0431\u044C");
+    form.button("\xA7c[ \u2715 ] \u041E\u0442\u0441\u0442\u0443\u043F\u0438\u0442\u044C (\u043F\u0440\u0435\u0440\u0432\u0430\u0442\u044C \u0432\u0437\u043B\u043E\u043C)");
+    system2.runTimeout(() => {
+      form.show(player).then((response) => {
+        if (response.canceled || response.selection === 3 || response.selection === void 0) {
+          this.activeSessions.delete(player.id);
+          player.sendMessage("\xA77\u0412\u044B \u0430\u043A\u043A\u0443\u0440\u0430\u0442\u043D\u043E \u0438\u0437\u0432\u043B\u0435\u043A\u043B\u0438 \u043E\u0442\u043C\u044B\u0447\u043A\u0443 \u0438 \u043E\u0442\u0441\u0442\u0443\u043F\u0438\u043B\u0438 \u043E\u0442 \u0434\u0432\u0435\u0440\u0438.");
+          return;
+        }
+        const actionChosen = response.selection;
+        const requiredAction = state.pinSolutions[state.currentPin];
+        if (actionChosen === requiredAction) {
+          state.currentPin++;
+          player.playSound("random.orb", { pitch: 1.8, volume: 0.8 });
+          if (state.currentPin >= state.totalPins) {
+            this.activeSessions.delete(player.id);
+            onFinish(true);
+            return;
+          }
+          state.lastHint = `\xA7a[\u0429\u0435\u043B\u0447\u043E\u043A!] \u0428\u0442\u0438\u0444\u0442 ${state.currentPin} \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u0437\u0430\u0444\u0438\u043A\u0441\u0438\u0440\u043E\u0432\u0430\u043D!`;
+          this.showMinigameStep(player, onFinish);
+        } else {
+          state.durability--;
+          player.playSound("random.break", { pitch: 1, volume: 0.7 });
+          if (state.durability <= 0) {
+            this.activeSessions.delete(player.id);
+            onFinish(false);
+            return;
+          }
+          state.lastHint = `\xA7c[\u0421\u0440\u044B\u0432!] \u041E\u0442\u043C\u044B\u0447\u043A\u0430 \u0441\u043E\u0441\u043A\u043E\u0447\u0438\u043B\u0430 \u0438 \u0443\u043F\u0451\u0440\u043B\u0430\u0441\u044C \u0432 \u043F\u0430\u0437. \u041F\u0440\u043E\u0447\u043D\u043E\u0441\u0442\u044C \u0443\u043C\u0435\u043D\u044C\u0448\u0435\u043D\u0430!`;
+          this.showMinigameStep(player, onFinish);
+        }
+      }).catch(() => {
+        this.activeSessions.delete(player.id);
+      });
+    }, 2);
+  }
+};
+var lockpickMinigame = new LockpickMinigame();
+
+// BP/scripts/src/modules/doors/doorManager.ts
+var STORAGE_KEY = "mafia_saved_doors";
 var DoorManager = class {
   doors = /* @__PURE__ */ new Map();
-  activePicking = /* @__PURE__ */ new Map();
-  registerHouseDoor(ownerId, pos) {
-    const key = `${Math.floor(pos.x)}_${Math.floor(pos.y)}_${Math.floor(pos.z)}`;
-    this.doors.set(key, {
+  constructor() {
+    this.loadDoorsFromStorage();
+  }
+  /**
+   * Нормализация позиции двери к её нижнему блоку
+   */
+  getNormalizedDoorPos(block) {
+    const loc = block.location;
+    try {
+      const blockBelow = block.dimension.getBlock({ x: loc.x, y: loc.y - 1, z: loc.z });
+      if (blockBelow && blockBelow.typeId.includes("door")) {
+        return { x: loc.x, y: loc.y - 1, z: loc.z };
+      }
+    } catch (_) {
+    }
+    return { x: loc.x, y: loc.y, z: loc.z };
+  }
+  getDoorKey(pos, dimensionId) {
+    return `${Math.floor(pos.x)}_${Math.floor(pos.y)}_${Math.floor(pos.z)}_${dimensionId}`;
+  }
+  getDoorAt(pos, dimensionId) {
+    return this.doors.get(this.getDoorKey(pos, dimensionId));
+  }
+  getDoorByBlock(block) {
+    const pos = this.getNormalizedDoorPos(block);
+    return this.getDoorAt(pos, block.dimension.id);
+  }
+  /**
+   * Установка замка на дверь предметом mafia:door_lock
+   */
+  installLock(player, block) {
+    const pos = this.getNormalizedDoorPos(block);
+    const key = this.getDoorKey(pos, block.dimension.id);
+    const existingDoor = this.doors.get(key);
+    if (existingDoor) {
+      if (existingDoor.ownerId === player.id) {
+        if (player.isSneaking) {
+          this.doors.delete(key);
+          this.saveDoorsToStorage();
+          player.sendMessage("\xA7e\u0412\u044B \u0441\u043D\u044F\u043B\u0438 \u0437\u0430\u043C\u043E\u043A \u0441\u043E \u0441\u0432\u043E\u0435\u0439 \u0434\u0432\u0435\u0440\u0438. \u0414\u0432\u0435\u0440\u044C \u0442\u0435\u043F\u0435\u0440\u044C \u043E\u0442\u043A\u0440\u044B\u0442\u0430 \u0434\u043B\u044F \u0432\u0441\u0435\u0445.");
+          player.runCommandAsync("give @s mafia:door_lock 1").catch(() => {
+          });
+          player.playSound("random.chestclosed", { pitch: 1.2, volume: 0.8 });
+          return true;
+        } else {
+          player.sendMessage("\xA7e\u042D\u0442\u043E \u0432\u0430\u0448\u0430 \u0434\u0432\u0435\u0440\u044C. \u041F\u0440\u0438\u0441\u044F\u0434\u044C\u0442\u0435 (Sneak) + \u041F\u041A\u041C \u0437\u0430\u043C\u043A\u043E\u043C, \u0447\u0442\u043E\u0431\u044B \u0441\u043D\u044F\u0442\u044C \u0435\u0433\u043E.");
+          return false;
+        }
+      } else {
+        player.sendMessage(`\xA7c\u041D\u0430 \u044D\u0442\u043E\u0439 \u0434\u0432\u0435\u0440\u0438 \u0443\u0436\u0435 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D \u0437\u0430\u043C\u043E\u043A \u0434\u0440\u0443\u0433\u043E\u0433\u043E \u0436\u0438\u0442\u0435\u043B\u044F (${existingDoor.ownerName})!`);
+        return false;
+      }
+    }
+    const newDoor = {
       id: key,
-      ownerId,
+      ownerId: player.id,
+      ownerName: player.name,
       doorBlockPos: pos,
+      dimensionId: block.dimension.id,
       isLocked: true,
       hasLight: true
-    });
+    };
+    this.doors.set(key, newDoor);
+    this.saveDoorsToStorage();
+    player.sendMessage(`\xA7a[\u0417\u0430\u043C\u043E\u043A \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D] \u042D\u0442\u0430 \u0434\u0432\u0435\u0440\u044C \u0442\u0435\u043F\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430 \u0438 \u043F\u0440\u0438\u043D\u0430\u0434\u043B\u0435\u0436\u0438\u0442 \u0432\u0430\u043C!`);
+    player.sendMessage("\xA77\u0422\u043E\u043B\u044C\u043A\u043E \u0432\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u0432\u0445\u043E\u0434\u0438\u0442\u044C \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E. \u041C\u0430\u0444\u0438\u0438 \u043F\u043E\u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u043E\u0442\u043C\u044B\u0447\u043A\u0430.");
+    player.playSound("block.iron_door.close", { pitch: 1, volume: 1 });
+    return true;
   }
-  getDoorAt(pos) {
-    const key = `${Math.floor(pos.x)}_${Math.floor(pos.y)}_${Math.floor(pos.z)}`;
-    return this.doors.get(key);
+  /**
+   * Проверка и обработка обычного взаимодействия с дверью (попытка открыть)
+   * Возвращает true, если взаимодействие нужно заблокировать (дверь заперта)
+   */
+  handleDoorInteract(player, block) {
+    const door = this.getDoorByBlock(block);
+    if (!door) {
+      return false;
+    }
+    if (door.ownerId === player.id) {
+      if (player.isSneaking) {
+        door.isLocked = !door.isLocked;
+        this.saveDoorsToStorage();
+        const status = door.isLocked ? "\xA7c\u0437\u0430\u043F\u0435\u0440\u043B\u0438" : "\xA7a\u043E\u0442\u043F\u0435\u0440\u043B\u0438";
+        player.sendMessage(`\xA7e\u0412\u044B ${status} \u0437\u0430\u043C\u043E\u043A \u043D\u0430 \u0441\u0432\u043E\u0435\u0439 \u0434\u0432\u0435\u0440\u0438.`);
+        player.playSound("random.click", { pitch: 1.2, volume: 0.6 });
+        return true;
+      }
+      return false;
+    }
+    if (door.isLocked) {
+      player.sendMessage(`\xA7c[\u0417\u0430\u043F\u0435\u0440\u0442\u043E] \u0414\u0432\u0435\u0440\u044C \u0437\u0430\u0449\u0438\u0449\u0435\u043D\u0430 \u0437\u0430\u043C\u043A\u043E\u043C. \u0412\u043B\u0430\u0434\u0435\u043B\u0435\u0446: \xA7f${door.ownerName}`);
+      player.playSound("random.door_close", { pitch: 0.8, volume: 0.8 });
+      return true;
+    }
+    return false;
+  }
+  /**
+   * Запуск мини-игры взлома отмычкой
+   */
+  startLockpicking(player, block) {
+    const role = roleManager.getRole(player.id);
+    if (role !== "mafia_boss" && role !== "mafia_goon") {
+      player.sendMessage("\xA7c\u0412\u044B \u043D\u0435 \u0443\u043C\u0435\u0435\u0442\u0435 \u043E\u0431\u0440\u0430\u0449\u0430\u0442\u044C\u0441\u044F \u0441 \u0432\u043E\u0440\u043E\u0432\u0441\u043A\u043E\u0439 \u043E\u0442\u043C\u044B\u0447\u043A\u043E\u0439.");
+      return;
+    }
+    const door = this.getDoorByBlock(block);
+    if (!door) {
+      player.sendMessage("\xA77\u041D\u0430 \u044D\u0442\u043E\u0439 \u0434\u0432\u0435\u0440\u0438 \u043D\u0435\u0442 \u0437\u0430\u043C\u043A\u0430, \u043E\u043D\u0430 \u0438 \u0442\u0430\u043A \u043E\u0442\u043A\u0440\u044B\u0442\u0430.");
+      return;
+    }
+    if (!door.isLocked) {
+      player.sendMessage("\xA7a\u0417\u0430\u043C\u043E\u043A \u043D\u0430 \u044D\u0442\u043E\u0439 \u0434\u0432\u0435\u0440\u0438 \u0443\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u0442!");
+      return;
+    }
+    lockpickMinigame.startMinigame(player, door, (isSuccess) => {
+      if (isSuccess) {
+        door.isLocked = false;
+        this.saveDoorsToStorage();
+        player.sendMessage("\xA7a[\u0423\u0441\u043F\u0435\u0445] \u0412\u0441\u0435 \u0448\u0442\u0438\u0444\u0442\u044B \u043F\u043E\u0434\u0434\u0430\u043B\u0438\u0441\u044C! \u0414\u0432\u0435\u0440\u044C \u0442\u0438\u0445\u043E \u043E\u0442\u043A\u0440\u044B\u0442\u0430.");
+        player.playSound("random.door_open", { pitch: 1, volume: 0.8 });
+        try {
+          const dim = world3.getDimension(door.dimensionId);
+          const b = dim.getBlock(door.doorBlockPos);
+          if (b) {
+            b.setPermutation(b.permutation.withState("open_bit", true));
+          }
+        } catch (_) {
+        }
+      } else {
+        player.sendMessage("\xA7c[\u0421\u0440\u044B\u0432] \u041E\u0442\u043C\u044B\u0447\u043A\u0430 \u0441 \u0433\u0440\u043E\u0445\u043E\u0442\u043E\u043C \u0441\u043B\u043E\u043C\u0430\u043B\u0430\u0441\u044C!");
+        player.playSound("random.break", { pitch: 0.8, volume: 1 });
+        if (door.hasLight) {
+          const owner = world3.getAllPlayers().find((p) => p.id === door.ownerId);
+          if (owner && owner.isValid()) {
+            owner.sendMessage(GAME_CONFIG.doorLock.ownerAlertMessage);
+            owner.playSound("random.orb", { pitch: 0.5, volume: 1 });
+          }
+        } else {
+          player.sendMessage("\xA78(\u0421\u0432\u0435\u0442 \u0432 \u0434\u043E\u043C\u0435 \u0431\u044B\u043B \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D \u2014 \u0445\u043E\u0437\u044F\u0438\u043D \u043D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u0437\u0430\u043F\u043E\u0434\u043E\u0437\u0440\u0438\u043B)");
+        }
+      }
+    });
   }
   setLightState(doorKey, hasLight) {
     const door = this.doors.get(doorKey);
     if (door) {
       door.hasLight = hasLight;
+      this.saveDoorsToStorage();
     }
   }
   getAllDoors() {
     return Array.from(this.doors.values());
   }
-  /**
-   * Начать или продолжить процесс взлома двери отмычкой
-   */
-  attemptLockpick(player, door) {
-    const role = roleManager.getRole(player.id);
-    if (role !== "mafia_boss" && role !== "mafia_goon") {
-      player.sendMessage("\xA7c\u0412\u044B \u043D\u0435 \u0443\u043C\u0435\u0435\u0442\u0435 \u043E\u0431\u0440\u0430\u0449\u0430\u0442\u044C\u0441\u044F \u0441 \u043E\u0442\u043C\u044B\u0447\u043A\u043E\u0439.");
-      return;
-    }
-    const currentSession = this.activePicking.get(player.id);
-    if (!currentSession || currentSession.targetDoorKey !== door.id) {
-      this.activePicking.set(player.id, {
-        tickCount: 0,
-        targetDoorKey: door.id
-      });
-      player.onScreenDisplay.setActionBar("\xA7e\u0412\u0437\u043B\u043E\u043C \u0437\u0430\u043C\u043A\u0430: [ \xA7a||||\xA77|||||||||||||||| ]");
-      player.playSound("step.iron_bare", { pitch: 1.5, volume: 0.5 });
-      return;
-    }
-    currentSession.tickCount += 5;
-    const progress = Math.min(1, currentSession.tickCount / GAME_CONFIG.doorLock.pickDurationTicks);
-    const barsTotal = 20;
-    const filledBars = Math.floor(progress * barsTotal);
-    const emptyBars = barsTotal - filledBars;
-    const barStr = "\xA7a" + "|".repeat(filledBars) + "\xA77" + "|".repeat(emptyBars);
-    player.onScreenDisplay.setActionBar(`\xA7e\u0412\u0437\u043B\u043E\u043C \u0437\u0430\u043C\u043A\u0430: [ ${barStr} ]`);
-    if (currentSession.tickCount >= GAME_CONFIG.doorLock.pickDurationTicks) {
-      this.activePicking.delete(player.id);
-      this.resolveLockpick(player, door);
+  clearAllDoors() {
+    this.doors.clear();
+    world3.setDynamicProperty(STORAGE_KEY, "");
+  }
+  // --- Сохранение и загрузка для независимости от карты ---
+  saveDoorsToStorage() {
+    try {
+      const data = JSON.stringify(Array.from(this.doors.values()));
+      world3.setDynamicProperty(STORAGE_KEY, data);
+    } catch (err) {
+      console.warn("Failed to save doors to dynamic properties:", err);
     }
   }
-  /**
-   * Завершение взлома: расчёт шанса успеха (65%)
-   */
-  resolveLockpick(player, door) {
-    const isSuccess = Math.random() < GAME_CONFIG.doorLock.successChance;
-    if (isSuccess) {
-      door.isLocked = false;
-      player.sendMessage("\xA7a[\u0423\u0441\u043F\u0435\u0445] \u0417\u0430\u043C\u043E\u043A \u0442\u0438\u0445\u043E \u0449\u0451\u043B\u043A\u043D\u0443\u043B \u0438 \u043E\u0442\u043A\u0440\u044B\u043B\u0441\u044F!");
-      player.playSound(GAME_CONFIG.doorLock.quietSound, { pitch: 1, volume: 0.6 });
-    } else {
-      player.sendMessage("\xA7c[\u0421\u0440\u044B\u0432] \u041E\u0442\u043C\u044B\u0447\u043A\u0430 \u0441\u043E\u0440\u0432\u0430\u043B\u0430\u0441\u044C \u0441 \u0433\u0440\u043E\u043C\u043A\u0438\u043C \u043B\u044F\u0437\u0433\u043E\u043C!");
-      player.playSound(GAME_CONFIG.doorLock.alarmSound, { pitch: 0.8, volume: 1 });
-      if (door.hasLight) {
-        const owner = world3.getAllPlayers().find((p) => p.id === door.ownerId);
-        if (owner && owner.isValid()) {
-          owner.sendMessage(GAME_CONFIG.doorLock.ownerAlertMessage);
-          owner.playSound("random.orb", { pitch: 0.5, volume: 1 });
+  loadDoorsFromStorage() {
+    try {
+      const data = world3.getDynamicProperty(STORAGE_KEY);
+      if (data && data.length > 0) {
+        const parsed = JSON.parse(data);
+        for (const d of parsed) {
+          this.doors.set(d.id, d);
         }
       }
+    } catch (err) {
+      console.warn("Failed to load doors from dynamic properties:", err);
     }
-  }
-  clear() {
-    this.doors.clear();
-    this.activePicking.clear();
   }
 };
 var doorManager = new DoorManager();
@@ -791,7 +986,6 @@ var LightManager = class {
       goon.sendMessage("\xA7c\u0412\u044B \u0443\u0436\u0435 \u0438\u0441\u0447\u0435\u0440\u043F\u0430\u043B\u0438 \u043B\u0438\u043C\u0438\u0442 \u0441\u0430\u0431\u043E\u0442\u0430\u0436\u0430 \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F (1 \u0434\u043E\u043C \u0432 \u0434\u0435\u043D\u044C).");
       return false;
     }
-    const door = doorManager.getDoorAt({ x: 0, y: 0, z: 0 });
     doorManager.setLightState(houseDoorKey, false);
     this.goonSabotageCount.set(goon.id, usedCount + 1);
     goon.sendMessage("\xA7a[\u0421\u0430\u0431\u043E\u0442\u0430\u0436] \u0412\u044B \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u043E\u0431\u0435\u0441\u0442\u043E\u0447\u0438\u043B\u0438 \u044D\u0442\u043E\u0442 \u0434\u043E\u043C! \u0412\u043B\u0430\u0434\u0435\u043B\u0435\u0446 \u043D\u0435 \u043F\u043E\u043B\u0443\u0447\u0438\u0442 \u0441\u0438\u0433\u043D\u0430\u043B \u0442\u0440\u0435\u0432\u043E\u0433\u0438 \u043F\u0440\u0438 \u0432\u0437\u043B\u043E\u043C\u0435.");
@@ -1133,7 +1327,7 @@ var DebugManager = class {
     if (!event.id.startsWith("mafia:")) return;
     const command = event.id.substring("mafia:".length).toLowerCase();
     const args = event.message.trim().split(/\s+/).filter(Boolean);
-    const sender = event.sourceEntity instanceof Player6 ? event.sourceEntity : world6.getAllPlayers()[0];
+    const sender = event.sourceEntity instanceof Player7 ? event.sourceEntity : world6.getAllPlayers()[0];
     if (!sender) {
       world6.sendMessage("[Mafia Debug] \u041A\u043E\u043C\u0430\u043D\u0434\u0430 \u0432\u044B\u0437\u0432\u0430\u043D\u0430 \u0431\u0435\u0437 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0433\u043E \u0438\u0433\u0440\u043E\u043A\u0430.");
       return;
@@ -1189,8 +1383,35 @@ var DebugManager = class {
         }
         break;
       }
+      case "list_doors": {
+        const doors = doorManager.getAllDoors();
+        if (doors.length === 0) {
+          sender.sendMessage("\xA77\u0417\u0430\u043F\u0435\u0440\u0442\u044B\u0445 \u0434\u0432\u0435\u0440\u0435\u0439 \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442. \u0412\u043E\u0437\u044C\u043C\u0438\u0442\u0435 \u0437\u0430\u043C\u043E\u043A (mafia:door_lock) \u0438 \u043D\u0430\u0436\u043C\u0438\u0442\u0435 \u041F\u041A\u041C \u043F\u043E \u0434\u0432\u0435\u0440\u0438.");
+        } else {
+          sender.sendMessage(`\xA76\u0417\u0430\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0438\u0440\u043E\u0432\u0430\u043D\u043E \u0434\u0432\u0435\u0440\u0435\u0439 \u043D\u0430 \u043A\u0430\u0440\u0442\u0435: ${doors.length}`);
+          for (const d of doors) {
+            sender.sendMessage(`\xA77- [${d.ownerName}] X:${Math.floor(d.doorBlockPos.x)} Y:${Math.floor(d.doorBlockPos.y)} Z:${Math.floor(d.doorBlockPos.z)} | ${d.isLocked ? "\xA7c\u0417\u0430\u043F\u0435\u0440\u0442\u0430" : "\xA7a\u041E\u0442\u043A\u0440\u044B\u0442\u0430"}`);
+          }
+        }
+        break;
+      }
+      case "clear_doors": {
+        doorManager.clearAllDoors();
+        sender.sendMessage("\xA7a\u0412\u0441\u0435 \u0437\u0430\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u044B\u0435 \u0437\u0430\u043C\u043A\u0438 \u0438 \u0434\u0432\u0435\u0440\u0438 \u043D\u0430 \u044D\u0442\u043E\u0439 \u043A\u0430\u0440\u0442\u0435 \u043E\u0447\u0438\u0449\u0435\u043D\u044B!");
+        break;
+      }
+      case "give_items": {
+        sender.runCommandAsync("give @s mafia:door_lock 4").catch(() => {
+        });
+        sender.runCommandAsync("give @s mafia:lockpick 2").catch(() => {
+        });
+        sender.runCommandAsync("give @s mafia:gloves 1").catch(() => {
+        });
+        sender.sendMessage("\xA7a\u0412\u0430\u043C \u0432\u044B\u0434\u0430\u043D\u044B: \u0417\u0430\u043C\u043A\u0438, \u041E\u0442\u043C\u044B\u0447\u043A\u0438 \u0438 \u041F\u0435\u0440\u0447\u0430\u0442\u043A\u0438 \u0434\u043B\u044F \u0442\u0435\u0441\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F!");
+        break;
+      }
       default:
-        sender.sendMessage("\xA7e\u041A\u043E\u043C\u0430\u043D\u0434\u044B Mafia: /scriptevent mafia:<start | phase | role | status | spawn_corpse | dossier>");
+        sender.sendMessage("\xA7e\u041A\u043E\u043C\u0430\u043D\u0434\u044B Mafia: /scriptevent mafia:<start | phase | role | status | spawn_corpse | dossier | list_doors | clear_doors | give_items>");
         break;
     }
   }
@@ -1367,6 +1588,27 @@ world8.afterEvents.itemUse.subscribe((event) => {
     corpseManager.handleGloveInteraction(player);
   }
 });
+world8.beforeEvents.playerInteractWithBlock.subscribe((event) => {
+  const block = event.block;
+  const player = event.player;
+  const item = event.itemStack;
+  if (block.typeId.includes("door")) {
+    if (item && item.typeId === "mafia:door_lock") {
+      event.cancel = true;
+      doorManager.installLock(player, block);
+      return;
+    }
+    if (item && item.typeId === "mafia:lockpick") {
+      event.cancel = true;
+      doorManager.startLockpicking(player, block);
+      return;
+    }
+    const shouldBlock = doorManager.handleDoorInteract(player, block);
+    if (shouldBlock) {
+      event.cancel = true;
+    }
+  }
+});
 world8.afterEvents.playerInteractWithEntity.subscribe((event) => {
   const player = event.player;
   const target = event.target;
@@ -1381,7 +1623,7 @@ world8.afterEvents.playerInteractWithEntity.subscribe((event) => {
       }
     }
   }
-  if (target instanceof Player8) {
+  if (target instanceof Player9) {
     if (roleManager.getRole(player.id) === "investigator") {
       if (player.isSneaking) {
         abilitiesManager.investigatePlayer(player, target);
@@ -1392,7 +1634,7 @@ world8.afterEvents.playerInteractWithEntity.subscribe((event) => {
 world8.afterEvents.entityHitEntity.subscribe((event) => {
   const attacker = event.damagingEntity;
   const hitEntity = event.hitEntity;
-  if (attacker instanceof Player8 && hitEntity instanceof Player8) {
+  if (attacker instanceof Player9 && hitEntity instanceof Player9) {
     const inv = attacker.getComponent("inventory");
     const container = inv ? inv.container : void 0;
     const mainHandItem = container ? container.getItem(attacker.selectedSlotIndex) : void 0;

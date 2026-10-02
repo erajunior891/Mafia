@@ -3,6 +3,7 @@ import {
   system, 
   Player, 
   PlayerInteractWithEntityAfterEvent,
+  PlayerInteractWithBlockBeforeEvent,
   ItemUseAfterEvent,
   EntityHitEntityAfterEvent,
   ScriptEventCommandMessageAfterEvent
@@ -12,6 +13,7 @@ import { corpseManager } from "./modules/corpse/corpseManager";
 import { abilitiesManager } from "./modules/abilities/abilitiesManager";
 import { crimeManager } from "./modules/crime/crimeManager";
 import { roleManager } from "./modules/roles/roleManager";
+import { doorManager } from "./modules/doors/doorManager";
 
 console.warn("§6[Mafia: City] Скриптовый модуль успешно загружен!");
 
@@ -20,7 +22,7 @@ system.afterEvents.scriptEventReceive.subscribe((event: ScriptEventCommandMessag
   debugManager.handleScriptEvent(event);
 });
 
-// 2. Использование предметов (ПКМ в воздухе или по блоку)
+// 2. Использование предметов (ПКМ в воздухе)
 world.afterEvents.itemUse.subscribe((event: ItemUseAfterEvent) => {
   const player = event.source;
   const item = event.itemStack;
@@ -31,7 +33,36 @@ world.afterEvents.itemUse.subscribe((event: ItemUseAfterEvent) => {
   }
 });
 
-// 3. Взаимодействие с сущностями (ПКМ по сущности)
+// 3. Взаимодействие с блоками (двери, замки, отмычки)
+world.beforeEvents.playerInteractWithBlock.subscribe((event: PlayerInteractWithBlockBeforeEvent) => {
+  const block = event.block;
+  const player = event.player;
+  const item = event.itemStack;
+
+  if (block.typeId.includes("door")) {
+    if (item && item.typeId === "mafia:door_lock") {
+      // Игрок устанавливает или снимает замок
+      event.cancel = true;
+      doorManager.installLock(player, block);
+      return;
+    }
+
+    if (item && item.typeId === "mafia:lockpick") {
+      // Мафия начинает мини-игру взлома замка
+      event.cancel = true;
+      doorManager.startLockpicking(player, block);
+      return;
+    }
+
+    // Обычная попытка открыть дверь
+    const shouldBlock = doorManager.handleDoorInteract(player, block);
+    if (shouldBlock) {
+      event.cancel = true;
+    }
+  }
+});
+
+// 4. Взаимодействие с сущностями (ПКМ по сущности)
 world.afterEvents.playerInteractWithEntity.subscribe((event: PlayerInteractWithEntityAfterEvent) => {
   const player = event.player;
   const target = event.target;
@@ -63,7 +94,7 @@ world.afterEvents.playerInteractWithEntity.subscribe((event: PlayerInteractWithE
   }
 });
 
-// 4. Удар сущности (выстрел Деда или атака)
+// 5. Удар сущности (выстрел Деда или атака)
 world.afterEvents.entityHitEntity.subscribe((event: EntityHitEntityAfterEvent) => {
   const attacker = event.damagingEntity;
   const hitEntity = event.hitEntity;
@@ -80,7 +111,7 @@ world.afterEvents.entityHitEntity.subscribe((event: EntityHitEntityAfterEvent) =
   }
 });
 
-// 5. Периодическая проверка осмотра места преступления Следователем
+// 6. Периодическая проверка осмотра места преступления Следователем
 system.runInterval(() => {
   for (const player of world.getAllPlayers()) {
     if (roleManager.getRole(player.id) === "investigator") {

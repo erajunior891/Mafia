@@ -5,6 +5,7 @@ import { roleManager } from "../roles/roleManager";
 import { RoleId, ROLE_DEFINITIONS } from "../roles/types";
 import { crimeManager } from "../crime/crimeManager";
 import { dossierManager } from "../dossier/dossierManager";
+import { doorManager } from "../doors/doorManager";
 
 export class DebugManager {
   /**
@@ -79,8 +80,35 @@ export class DebugManager {
         break;
       }
 
+      case "list_doors": {
+        const doors = doorManager.getAllDoors();
+        if (doors.length === 0) {
+          sender.sendMessage("§7Запертых дверей на карте пока нет. Возьмите замок (mafia:door_lock) и нажмите ПКМ по двери.");
+        } else {
+          sender.sendMessage(`§6Зарегистрировано дверей на карте: ${doors.length}`);
+          for (const d of doors) {
+            sender.sendMessage(`§7- [${d.ownerName}] X:${Math.floor(d.doorBlockPos.x)} Y:${Math.floor(d.doorBlockPos.y)} Z:${Math.floor(d.doorBlockPos.z)} | ${d.isLocked ? "§cЗаперта" : "§aОткрыта"}`);
+          }
+        }
+        break;
+      }
+
+      case "clear_doors": {
+        doorManager.clearAllDoors();
+        sender.sendMessage("§aВсе зарегистрированные замки и двери на этой карте очищены!");
+        break;
+      }
+
+      case "give_items": {
+        sender.runCommandAsync("give @s mafia:door_lock 4").catch(() => {});
+        sender.runCommandAsync("give @s mafia:lockpick 2").catch(() => {});
+        sender.runCommandAsync("give @s mafia:gloves 1").catch(() => {});
+        sender.sendMessage("§aВам выданы: Замки, Отмычки и Перчатки для тестирования!");
+        break;
+      }
+
       default:
-        sender.sendMessage("§eКоманды Mafia: /scriptevent mafia:<start | phase | role | status | spawn_corpse | dossier>");
+        sender.sendMessage("§eКоманды Mafia: /scriptevent mafia:<start | phase | role | status | spawn_corpse | dossier | list_doors | clear_doors | give_items>");
         break;
     }
   }
